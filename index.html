@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FlowRead</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0c;
+    --surface: #131318;
+    --surface2: #1c1c24;
+    --border: #2a2a38;
+    --accent: #c8a96e;
+    --accent2: #7c6fcd;
+    --text: #e8e4dc;
+    --text-dim: #7a7880;
+    --text-mid: #b0acb8;
+    --danger: #e05c5c;
+    --r: 12px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; height: 100dvh; }
+  .screen.active { display: flex; }
+
+  /* ══════════════════ LIBRARY SCREEN ══════════════════ */
+  #screen-library {
+    padding: 0;
+    background: var(--bg);
+  }
+
+  .lib-header {
+    padding: 52px 28px 20px;
+    background: linear-gradient(180deg, #0a0a0c 70%, transparent);
+    position: relative;
+    z-index: 2;
+  }
+
+  .lib-header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .lib-header h1 span {
+    color: var(--accent);
+  }
+
+  .lib-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .lib-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 100px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Upload area */
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--r);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(200,169,110,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(200,169,110,0.04);
+  }
+
+  .upload-zone input { display: none; }
+
+  .upload-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+
+  .upload-zone p {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  .upload-zone strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Book list */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .book-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .book-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .book-card::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .book-card:active { transform: scale(0.985); }
+  .book-card:hover { border-color: var(--accent); }
+  .book-card:hover::after { opacity: 1; }
+
+  .book-cover {
+    width: 44px; height: 58px;
+    border-radius: 4px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .book-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+  .book-info { flex: 1; min-width: 0; }
+
+  .book-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+
+  .book-author {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .book-progress {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .book-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .book-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .book-delete-btn {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    opacity: 0;
+    cursor: pointer;
+    padding: 6px;
+    font-size: 1rem;
+    transition: opacity 0.2s;
+    line-height: 1;
+  }
+
+  .book-card:hover .book-delete-btn { opacity: 0.7; }
+  .book-delete-btn:hover { opacity: 1 !important; }
+
+  .empty-library {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  /* ══════════════════ READER SCREEN ══════════════════ */
+  #screen-reader {
+    background: var(--bg);
+    position: relative;
+  }
+
+  /* Top bar */
+  .reader-topbar {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+
+  .btn-icon {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .btn-icon:hover { background: var(--surface2); color: var(--text); }
+
+  .reader-book-title {
+    flex: 1;
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.9rem;
+    color: var(--text-mid);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.04em;
+  }
+
+  .mode-btn.active {
+    background: var(--accent2);
+    color: #fff;
+  }
+
+  /* ── RSVP area ── */
+  #rsvp-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    user-select: none;
+  }
+
+  .rsvp-chapter {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  /* The main RSVP word display */
+  .rsvp-word-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .rsvp-track {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .rsvp-track::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 100%, rgba(124,111,205,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Red letter marker */
+  .rsvp-focus-line {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: var(--accent);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .rsvp-word {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 7vw, 2.6rem);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    transition: opacity 0.05s;
+    position: relative;
+    z-index: 1;
+  }
+
+  .rsvp-word .focus-letter {
+    color: var(--accent);
+  }
+
+  .rsvp-context {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 10px;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.5;
+    text-align: center;
+    max-width: 320px;
+    z-index: 1;
+  }
+
+  /* Progress bar */
+  .rsvp-progress-wrap {
+    width: 100%;
+    max-width: 420px;
+    margin-top: 20px;
+  }
+
+  .rsvp-progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .rsvp-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.2s linear;
+  }
+
+  .rsvp-counters {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+  }
+
+  /* Controls row */
+  .rsvp-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .btn-control {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .btn-control:active { transform: scale(0.93); }
+  .btn-control:hover { background: var(--surface2); color: var(--text); }
+
+  .btn-play-pause {
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    font-size: 1.3rem;
+    background: var(--accent2);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(124,111,205,0.3);
+  }
+
+  .btn-play-pause:hover { background: #9085dc; border-color: transparent; }
+  .btn-sm { width: 38px; height: 38px; }
+
+  /* WPM slider */
+  .wpm-section {
+    width: 100%;
+    max-width: 420px;
+    margin-top: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .wpm-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+
+  .wpm-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--accent);
+    font-weight: 500;
+    min-width: 48px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent2);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 6px rgba(124,111,205,0.5);
+  }
+
+  /* ── CHUNK/ZOOM view ── */
+  #chunk-container {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    padding: 16px 20px;
+    overflow: hidden;
+  }
+
+  #chunk-container.active { display: flex; }
+
+  .chunk-text {
+    flex: 1;
+    overflow-y: auto;
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+    line-height: 1.75;
+    color: var(--text);
+    padding: 8px 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chunk-text .current-word {
+    background: rgba(200,169,110,0.25);
+    color: var(--accent);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  .chunk-nav {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    align-items: center;
+  }
+
+  .chunk-nav .btn-control { flex: 1; height: 40px; font-size: 0.8rem; font-family: 'DM Mono', monospace; letter-spacing: 0.04em; }
+
+  /* ── LOADING overlay ── */
+  #loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    display: none;
+  }
+
+  #loading-overlay.show { display: flex; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .loading-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 16px;
+    letter-spacing: 0.08em;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Word pop animation */
+  @keyframes wordPop {
+    0% { opacity: 0; transform: scale(0.92); }
+    60% { opacity: 1; transform: scale(1.03); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .rsvp-word.pop { animation: wordPop 0.12s ease-out forwards; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-family: 'DM Sans', sans-serif;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-label" id="loading-label">Parsing epub…</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ══════════ LIBRARY SCREEN ══════════ -->
+<div id="screen-library" class="screen active">
+  <div class="lib-header">
+    <h1>Flow<span>Read</span></h1>
+    <div class="lib-subtitle">RSVP epub reader</div>
+  </div>
+  <div class="lib-body">
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".epub,.txt,.text">
+      <div class="upload-icon">📖</div>
+      <p><strong>Tap to add a file</strong><br>.txt or .epub · or drag &amp; drop</p>
+    </div>
+
+    <button id="btn-paste-text" 
+      onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--text)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-mid)'"
+      style="
+      width:100%; margin-bottom:16px; padding:13px 16px;
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+      color:var(--text-mid); font-family:'DM Sans',sans-serif; font-size:0.85rem;
+      cursor:pointer; text-align:left; transition:border-color 0.2s,color 0.2s;
+    ">✏️ &nbsp;Paste or type text directly…</button>
+
+    <!-- Paste modal -->
+    <div id="paste-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:50; padding:24px; align-items:flex-end;">
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; padding:20px; display:flex; flex-direction:column; gap:12px;">
+        <div style="font-family:'DM Serif Display',serif; font-size:1.1rem;">Add text</div>
+        <input id="paste-title" placeholder="Title (optional)" style="
+          background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+          color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.88rem;
+          padding:10px 12px; outline:none; width:100%;
+        ">
+        <textarea id="paste-body" placeholder="Paste your text here…" rows="8" style="
+          background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+          color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.88rem;
+          padding:10px 12px; outline:none; width:100%; resize:none; line-height:1.5;
+        "></textarea>
+        <div style="display:flex; gap:8px;">
+          <button id="paste-cancel" style="flex:1; padding:11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text-dim); cursor:pointer; font-size:0.85rem;">Cancel</button>
+          <button id="paste-confirm" style="flex:2; padding:11px; background:var(--accent2); border:none; border-radius:8px; color:#fff; cursor:pointer; font-size:0.85rem; font-weight:500;">Add to Library</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Your Library</div>
+    <div class="book-list" id="book-list">
+      <div class="empty-library" id="empty-msg">
+        No books yet — add an EPUB above to start reading.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ READER SCREEN ══════════ -->
+<div id="screen-reader" class="screen">
+  <div class="reader-topbar">
+    <button class="btn-icon" id="btn-back" title="Library">←</button>
+    <div class="reader-book-title" id="reader-title">—</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-mode-rsvp">RSVP</button>
+      <button class="mode-btn" id="btn-mode-chunk">Read</button>
+    </div>
+  </div>
+
+  <!-- RSVP VIEW -->
+  <div id="rsvp-container">
+    <div class="rsvp-chapter" id="rsvp-chapter"></div>
+
+    <div class="rsvp-word-wrap">
+      <div class="rsvp-track">
+        <div class="rsvp-word" id="rsvp-word">—</div>
+        <div class="rsvp-context" id="rsvp-context"></div>
+      </div>
+    </div>
+
+    <div class="rsvp-progress-wrap">
+      <div class="rsvp-progress-bar" id="rsvp-progress-bar">
+        <div class="rsvp-progress-fill" id="rsvp-progress-fill" style="width:0%"></div>
+      </div>
+      <div class="rsvp-counters">
+        <span id="rsvp-pos">0 / 0</span>
+        <span id="rsvp-eta">—</span>
+      </div>
+    </div>
+
+    <div class="rsvp-controls">
+      <button class="btn-control btn-sm" id="btn-skip-back" title="Back 10s">⏮</button>
+      <button class="btn-control btn-sm" id="btn-slower" title="Slower">−</button>
+      <button class="btn-control btn-play-pause" id="btn-play" title="Play/Pause">▶</button>
+      <button class="btn-control btn-sm" id="btn-faster" title="Faster">+</button>
+      <button class="btn-control btn-sm" id="btn-skip-fwd" title="Fwd 10s">⏭</button>
+    </div>
+
+    <div class="wpm-section">
+      <span class="wpm-label">WPM</span>
+      <input type="range" id="wpm-slider" min="60" max="800" step="10" value="250">
+      <span class="wpm-value" id="wpm-display">250</span>
+    </div>
+  </div>
+
+  <!-- CHUNK/READ VIEW -->
+  <div id="chunk-container">
+    <div class="chunk-text" id="chunk-text"></div>
+    <div class="chunk-nav">
+      <button class="btn-control" id="btn-chunk-prev">← Prev</button>
+      <button class="btn-control" id="btn-chunk-resume" style="flex:1.5">▶ Resume here</button>
+      <button class="btn-control" id="btn-chunk-next">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+//  FlowRead — RSVP Reader  (.txt primary, .epub best-effort)
+// ══════════════════════════════════════════════════════
+
+const DB_NAME = 'flowread-db';
+const DB_VERSION = 1;
+let db;
+
+// ── IndexedDB setup ──────────────────────────────────
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('books')) {
+        d.createObjectStore('books', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGet(store, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbPut(store, value) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put(value);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbDelete(store, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(key);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGetAll(store) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+
+
+// ── Focus letter (ORP) ────────────────────────────────
+function getFocusIndex(word) {
+  const len = word.replace(/[^a-zA-Z]/g, '').length;
+  if (len <= 1) return 0;
+  if (len <= 5) return 1;
+  if (len <= 9) return 2;
+  if (len <= 13) return 3;
+  return 4;
+}
+
+function renderRSVPWord(word) {
+  const focusIdx = getFocusIndex(word);
+  // Find focusIdx-th letter char position
+  let letterCount = 0;
+  let focusCharPos = 0;
+  for (let i = 0; i < word.length; i++) {
+    if (/[a-zA-Z]/.test(word[i])) {
+      if (letterCount === focusIdx) { focusCharPos = i; break; }
+      letterCount++;
+    }
+  }
+  const before = escHtml(word.slice(0, focusCharPos));
+  const focus = `<span class="focus-letter">${escHtml(word[focusCharPos])}</span>`;
+  const after = escHtml(word.slice(focusCharPos + 1));
+  return before + focus + after;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── State ────────────────────────────────────────────
+let state = {
+  currentBookId: null,
+  words: [],
+  wordIndex: 0,
+  wpm: 250,
+  playing: false,
+  mode: 'rsvp', // 'rsvp' | 'chunk'
+  chunkSize: 200,
+  chunkStart: 0
+};
+
+let rsvpTimer = null;
+
+// ── DOM refs ─────────────────────────────────────────
+const screenLibrary = document.getElementById('screen-library');
+const screenReader = document.getElementById('screen-reader');
+const bookList = document.getElementById('book-list');
+const emptyMsg = document.getElementById('empty-msg');
+const uploadZone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+const loadingOverlay = document.getElementById('loading-overlay');
+const loadingLabel = document.getElementById('loading-label');
+
+const readerTitle = document.getElementById('reader-title');
+const rsvpWord = document.getElementById('rsvp-word');
+const rsvpContext = document.getElementById('rsvp-context');
+const rsvpChapter = document.getElementById('rsvp-chapter');
+const rsvpProgressFill = document.getElementById('rsvp-progress-fill');
+const rsvpPos = document.getElementById('rsvp-pos');
+const rsvpEta = document.getElementById('rsvp-eta');
+const rsvpContainer = document.getElementById('rsvp-container');
+const chunkContainer = document.getElementById('chunk-container');
+const chunkText = document.getElementById('chunk-text');
+const wpmSlider = document.getElementById('wpm-slider');
+const wpmDisplay = document.getElementById('wpm-display');
+const btnPlay = document.getElementById('btn-play');
+const btnBack = document.getElementById('btn-back');
+
+// ── Library UI ────────────────────────────────────────
+async function renderLibrary() {
+  const books = await dbGetAll('books');
+  bookList.innerHTML = '';
+  if (books.length === 0) {
+    bookList.appendChild(emptyMsg);
+    return;
+  }
+  books.forEach(book => {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    const progress = book.words ? Math.round((book.wordIndex / book.words.length) * 100) : 0;
+    card.innerHTML = `
+      <div class="book-cover">
+        ${book.coverDataUrl ? `<img src="${book.coverDataUrl}" alt="cover">` : '📖'}
+      </div>
+      <div class="book-info">
+        <div class="book-title">${escHtml(book.title)}</div>
+        <div class="book-author">${escHtml(book.author)}</div>
+        <div class="book-progress"><div class="book-progress-fill" style="width:${progress}%"></div></div>
+      </div>
+      <div class="book-meta">${progress}%</div>
+      <button class="book-delete-btn" data-id="${book.id}" title="Remove">✕</button>
+    `;
+
+    // Open book on card click (but not delete button)
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.book-delete-btn')) return;
+      openBook(book.id);
+    });
+
+    card.querySelector('.book-delete-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await dbDelete('books', book.id);
+      renderLibrary();
+      showToast('Book removed');
+    });
+
+    bookList.appendChild(card);
+  });
+}
+
+// ── File handling ─────────────────────────────────────
+uploadZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) handleFile(file);
+  fileInput.value = '';
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+  else showToast('Drop a .txt or .epub file');
+});
+
+async function handleFile(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.txt') || name.endsWith('.text')) {
+    await handleTxt(file);
+  } else if (name.endsWith('.epub')) {
+    await handleEpub(file);
+  } else {
+    showToast('Please use a .txt or .epub file');
+  }
+}
+
+async function handleTxt(file) {
+  showLoading('Reading text…');
+  try {
+    const text = await file.text();
+    const title = file.name.replace(/\.[^.]+$/, '');
+    await saveBook({ title, author: '', text });
+    hideLoading();
+    renderLibrary();
+    showToast(`Added: ${title}`);
+  } catch(err) {
+    hideLoading();
+    showToast('Could not read file');
+  }
+}
+
+async function handleEpub(file) {
+  showLoading('Parsing epub…');
+  try {
+    const buffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(buffer);
+
+    // ── Step 1: container.xml ──
+    const containerFile = zip.file('META-INF/container.xml');
+    if (!containerFile) throw new Error('No container.xml — not a valid epub');
+    const containerXml = await containerFile.async('text');
+
+    const parser = new DOMParser();
+    const containerDoc = parser.parseFromString(containerXml, 'application/xml');
+    const rootfileEl = containerDoc.querySelector('rootfile');
+    if (!rootfileEl) throw new Error('No rootfile element in container.xml');
+    const rootfilePath = rootfileEl.getAttribute('full-path');
+    const rootDir = rootfilePath.includes('/')
+      ? rootfilePath.substring(0, rootfilePath.lastIndexOf('/') + 1)
+      : '';
+
+    // ── Step 2: OPF ──
+    const opfFile = zip.file(rootfilePath);
+    if (!opfFile) throw new Error(`OPF not found at: ${rootfilePath}`);
+    const opfText = await opfFile.async('text');
+    const opfDoc = parser.parseFromString(opfText, 'application/xml');
+
+    // Metadata — try both namespaced and plain selectors
+    const getMeta = (...selectors) => {
+      for (const sel of selectors) {
+        const el = opfDoc.querySelector(sel);
+        if (el && el.textContent.trim()) return el.textContent.trim();
+      }
+      return '';
+    };
+    const title = getMeta('title', 'dc\\:title') || file.name.replace('.epub','');
+    const author = getMeta('creator', 'dc\\:creator') || '';
+
+    // ── Step 3: manifest + spine ──
+    const manifest = {};
+    opfDoc.querySelectorAll('manifest item, item').forEach(item => {
+      const id = item.getAttribute('id');
+      const href = item.getAttribute('href');
+      const mt = item.getAttribute('media-type') || '';
+      if (id && href) manifest[id] = { href, mediaType: mt };
+    });
+
+    const spineHrefs = [];
+    opfDoc.querySelectorAll('spine itemref, itemref').forEach(ref => {
+      const id = ref.getAttribute('idref');
+      if (manifest[id]) {
+        const mt = manifest[id].mediaType;
+        if (!mt || mt.includes('html') || mt.includes('xhtml') || mt === '') {
+          spineHrefs.push(manifest[id].href);
+        }
+      }
+    });
+
+    if (spineHrefs.length === 0) throw new Error('No HTML spine items found in epub');
+
+    // ── Step 4: extract text ──
+    // Resolve file path: try rootDir+href, then href alone, then search by filename
+    function findZipFile(href) {
+      return zip.file(rootDir + href)
+        || zip.file(href)
+        || zip.file(decodeURIComponent(rootDir + href))
+        || zip.file(decodeURIComponent(href))
+        || (() => {
+            // last resort: match by basename
+            const base = href.split('/').pop();
+            const match = Object.keys(zip.files).find(k => k.endsWith('/' + base) || k === base);
+            return match ? zip.file(match) : null;
+          })();
+    }
+
+    let fullText = '';
+    for (const href of spineHrefs) {
+      const f = findZipFile(href);
+      if (!f) continue;
+      const html = await f.async('text');
+      const doc = parser.parseFromString(html, 'text/html');
+      doc.querySelectorAll('script,style,nav').forEach(el => el.remove());
+      const chunk = (doc.body || doc.documentElement).textContent
+        .replace(/\s+/g, ' ').trim();
+      if (chunk.length > 10) fullText += ' ' + chunk;
+    }
+
+    fullText = fullText.trim();
+    if (fullText.length < 50) throw new Error('Could not extract readable text from epub');
+
+    await saveBook({ title, author, text: fullText });
+    hideLoading();
+    renderLibrary();
+    showToast(`Added: ${title}`);
+  } catch(err) {
+    hideLoading();
+    console.error('EPUB parse error:', err);
+    showToast(`EPUB failed: ${err.message}. Try exporting as .txt from Calibre.`);
+  }
+}
+
+// ── Paste/type text ───────────────────────────────────
+const pasteModal = document.getElementById('paste-modal');
+document.getElementById('btn-paste-text').addEventListener('click', () => {
+  pasteModal.style.display = 'flex';
+  document.getElementById('paste-body').focus();
+});
+document.getElementById('paste-cancel').addEventListener('click', () => {
+  pasteModal.style.display = 'none';
+});
+document.getElementById('paste-confirm').addEventListener('click', async () => {
+  const title = document.getElementById('paste-title').value.trim() || 'Pasted text';
+  const text = document.getElementById('paste-body').value.trim();
+  if (text.length < 10) { showToast('Text is too short'); return; }
+  await saveBook({ title, author: '', text });
+  pasteModal.style.display = 'none';
+  document.getElementById('paste-title').value = '';
+  document.getElementById('paste-body').value = '';
+  renderLibrary();
+  showToast(`Added: ${title}`);
+});
+
+// ── Common save ───────────────────────────────────────
+async function saveBook({ title, author, text }) {
+  const words = textToWords(text, title);
+  const id = Date.now().toString();
+  await dbPut('books', { id, title, author, coverDataUrl: null, words, wordIndex: 0, wpm: 250 });
+}
+
+// ── Words extraction ──────────────────────────────────
+function textToWords(text, sourceTitle) {
+  return text.split(/\s+/).filter(w => w.length > 0)
+    .map(word => ({ word, chapterTitle: sourceTitle || '' }));
+}
+
+// ── Open book ─────────────────────────────────────────
+async function openBook(bookId) {
+  const book = await dbGet('books', bookId);
+  if (!book) { showToast('Book not found'); return; }
+
+  state.currentBookId = bookId;
+  state.words = book.words;
+  state.wordIndex = book.wordIndex || 0;
+  state.wpm = book.wpm || 250;
+  state.playing = false;
+
+  wpmSlider.value = state.wpm;
+  wpmDisplay.textContent = state.wpm;
+  btnPlay.textContent = '▶';
+
+  readerTitle.textContent = book.title;
+  updateRSVPDisplay();
+  setMode('rsvp');
+  showScreen('reader');
+}
+
+// ── RSVP display ──────────────────────────────────────
+function updateRSVPDisplay() {
+  if (!state.words.length) return;
+  const wi = Math.min(state.wordIndex, state.words.length - 1);
+  const entry = state.words[wi];
+
+  rsvpWord.innerHTML = renderRSVPWord(entry.word);
+  rsvpWord.classList.remove('pop');
+  void rsvpWord.offsetWidth;
+  rsvpWord.classList.add('pop');
+
+  rsvpChapter.textContent = entry.chapterTitle || '';
+
+  // Context (prev 3 + next 3 words)
+  const ctx = state.words.slice(Math.max(0, wi - 3), wi + 4).map((w, i) => {
+    const actual = Math.max(0, wi - 3) + i;
+    if (actual === wi) return `<strong style="color:var(--text)">${escHtml(w.word)}</strong>`;
+    return `<span style="color:var(--text-dim)">${escHtml(w.word)}</span>`;
+  }).join(' ');
+  rsvpContext.innerHTML = ctx;
+
+  const pct = (wi / state.words.length) * 100;
+  rsvpProgressFill.style.width = pct + '%';
+  rsvpPos.textContent = `${wi + 1} / ${state.words.length}`;
+
+  const remaining = state.words.length - wi;
+  const mins = Math.ceil(remaining / state.wpm);
+  rsvpEta.textContent = mins < 60 ? `${mins}m left` : `${Math.floor(mins/60)}h ${mins%60}m left`;
+}
+
+// ── Playback ──────────────────────────────────────────
+function startRSVP() {
+  if (state.wordIndex >= state.words.length - 1) state.wordIndex = 0;
+  state.playing = true;
+  btnPlay.textContent = '⏸';
+  scheduleNext();
+}
+
+function pauseRSVP() {
+  state.playing = false;
+  btnPlay.textContent = '▶';
+  clearTimeout(rsvpTimer);
+  saveProgress();
+}
+
+function scheduleNext() {
+  if (!state.playing) return;
+  const word = state.words[state.wordIndex]?.word || '';
+  // Delay adjustment: longer words get a bit more time
+  const base = 60000 / state.wpm;
+  const len = word.length;
+  let delay = base;
+  if (len > 8) delay *= 1.2;
+  if (/[.!?;:]$/.test(word)) delay *= 1.8; // pause after punctuation
+  else if (/[,]$/.test(word)) delay *= 1.3;
+
+  rsvpTimer = setTimeout(() => {
+    if (!state.playing) return;
+    state.wordIndex++;
+    if (state.wordIndex >= state.words.length) {
+      pauseRSVP();
+      showToast('End of book!');
+      return;
+    }
+    updateRSVPDisplay();
+    scheduleNext();
+  }, delay);
+}
+
+function togglePlay() {
+  if (state.playing) pauseRSVP();
+  else startRSVP();
+}
+
+// ── Progress bar click ────────────────────────────────
+document.getElementById('rsvp-progress-bar').addEventListener('click', e => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  state.wordIndex = Math.floor(pct * state.words.length);
+  updateRSVPDisplay();
+  if (state.playing) { clearTimeout(rsvpTimer); scheduleNext(); }
+});
+
+// ── Controls ──────────────────────────────────────────
+btnPlay.addEventListener('click', togglePlay);
+
+document.getElementById('btn-skip-back').addEventListener('click', () => {
+  const steps = Math.floor(state.wpm / 6); // ~10 seconds
+  state.wordIndex = Math.max(0, state.wordIndex - steps);
+  updateRSVPDisplay();
+  if (state.playing) { clearTimeout(rsvpTimer); scheduleNext(); }
+});
+
+document.getElementById('btn-skip-fwd').addEventListener('click', () => {
+  const steps = Math.floor(state.wpm / 6);
+  state.wordIndex = Math.min(state.words.length - 1, state.wordIndex + steps);
+  updateRSVPDisplay();
+  if (state.playing) { clearTimeout(rsvpTimer); scheduleNext(); }
+});
+
+document.getElementById('btn-slower').addEventListener('click', () => {
+  state.wpm = Math.max(60, state.wpm - 25);
+  wpmSlider.value = state.wpm;
+  wpmDisplay.textContent = state.wpm;
+  if (state.playing) { clearTimeout(rsvpTimer); scheduleNext(); }
+  saveProgress();
+});
+
+document.getElementById('btn-faster').addEventListener('click', () => {
+  state.wpm = Math.min(800, state.wpm + 25);
+  wpmSlider.value = state.wpm;
+  wpmDisplay.textContent = state.wpm;
+  if (state.playing) { clearTimeout(rsvpTimer); scheduleNext(); }
+  saveProgress();
+});
+
+wpmSlider.addEventListener('input', () => {
+  state.wpm = parseInt(wpmSlider.value);
+  wpmDisplay.textContent = state.wpm;
+  if (state.playing) { clearTimeout(rsvpTimer); scheduleNext(); }
+});
+
+wpmSlider.addEventListener('change', saveProgress);
+
+// ── Mode toggle ───────────────────────────────────────
+document.getElementById('btn-mode-rsvp').addEventListener('click', () => setMode('rsvp'));
+document.getElementById('btn-mode-chunk').addEventListener('click', () => setMode('chunk'));
+
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('btn-mode-rsvp').classList.toggle('active', mode === 'rsvp');
+  document.getElementById('btn-mode-chunk').classList.toggle('active', mode === 'chunk');
+  rsvpContainer.style.display = mode === 'rsvp' ? 'flex' : 'none';
+  chunkContainer.classList.toggle('active', mode === 'chunk');
+  if (mode === 'chunk') {
+    pauseRSVP();
+    renderChunk();
+  }
+}
+
+// ── Chunk/Read view ───────────────────────────────────
+function renderChunk() {
+  state.chunkStart = Math.max(0, state.wordIndex - Math.floor(state.chunkSize / 2));
+  const end = Math.min(state.words.length, state.chunkStart + state.chunkSize);
+  const slice = state.words.slice(state.chunkStart, end);
+
+  chunkText.innerHTML = slice.map((w, i) => {
+    const globalIdx = state.chunkStart + i;
+    if (globalIdx === state.wordIndex) {
+      return `<span class="current-word">${escHtml(w.word)}</span>`;
+    }
+    return escHtml(w.word);
+  }).join(' ');
+
+  // Scroll current word into view
+  const cw = chunkText.querySelector('.current-word');
+  if (cw) cw.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+document.getElementById('btn-chunk-prev').addEventListener('click', () => {
+  state.wordIndex = Math.max(0, state.wordIndex - state.chunkSize);
+  renderChunk();
+});
+
+document.getElementById('btn-chunk-next').addEventListener('click', () => {
+  state.wordIndex = Math.min(state.words.length - 1, state.wordIndex + state.chunkSize);
+  renderChunk();
+});
+
+document.getElementById('btn-chunk-resume').addEventListener('click', () => {
+  setMode('rsvp');
+});
+
+// ── Back ──────────────────────────────────────────────
+btnBack.addEventListener('click', () => {
+  pauseRSVP();
+  saveProgress();
+  showScreen('library');
+  renderLibrary();
+});
+
+// ── Save progress ─────────────────────────────────────
+async function saveProgress() {
+  if (!state.currentBookId) return;
+  try {
+    const book = await dbGet('books', state.currentBookId);
+    if (book) {
+      book.wordIndex = state.wordIndex;
+      book.wpm = state.wpm;
+      await dbPut('books', book);
+    }
+  } catch(e) { /* ignore */ }
+}
+
+// ── Screen switch ─────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// ── Loading ───────────────────────────────────────────
+function showLoading(msg = 'Loading…') {
+  loadingLabel.textContent = msg;
+  loadingOverlay.classList.add('show');
+}
+function hideLoading() {
+  loadingOverlay.classList.remove('show');
+}
+
+// ── Toast ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Keyboard shortcuts ────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (screenReader.classList.contains('active') && state.mode === 'rsvp') {
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    if (e.code === 'ArrowRight') document.getElementById('btn-skip-fwd').click();
+    if (e.code === 'ArrowLeft') document.getElementById('btn-skip-back').click();
+    if (e.code === 'ArrowUp') document.getElementById('btn-faster').click();
+    if (e.code === 'ArrowDown') document.getElementById('btn-slower').click();
+  }
+});
+
+// ── Init ──────────────────────────────────────────────
+(async () => {
+  await openDB();
+  renderLibrary();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
